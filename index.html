@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+		<link href="https://fonts.googleapis.com/css2?family=Bad+Script&display=swap" rel="stylesheet">
+		<style>
+			* {
+				-webkit-transition: all 0.2s ease !important;
+				-moz-transition:    all 0.2s ease !important;
+				-ms-transition:     all 0.2s ease !important;
+				-o-transition:      all 0.2s ease !important;
+				transition:         all 0.2s ease !important;
+			}
+			html, body {
+				padding-top: 0;
+				padding-bottom: 1em;
+				color: white;
+				font-family: Ubuntu, Roboto, sans-serif;
+				background-color: #5a6988;
+			}
+			body {
+				margin-left: 25%;
+				margin-right: 25%;
+				padding: 0 10em 0 10em 0 !important;
+			}
+			canvas {
+				margin: auto;
+				width: auto;
+				height: auto;
+				display: block;
+			}
+			video {
+				display: none;
+			}
+			#nuuro-wrapper-div {
+				margin-top: 2rem;
+				margin-bottom: 2rem;
+				display: block;
+				background-color: #5a6988;
+				overflow: hidden;
+				border: 2px line black;
+			}
+			h1 {
+				font-size: 32px;
+			}
+			p {
+				font-size: 16px;
+				padding-top: 25px;
+			}
+			.styled {
+				font-family: 'Bad Script', cursive;
+			}
+			.title {
+				text-align: center;
+			}
+			.error-text {
+				text-align: center;
+			}
+			#play {
+				display: flex;
+				justify-content: center;
+			}
+			#play .button {
+				margin: 0 auto;
+			}
+
+			.button {
+				background-color: #f6757a;
+				border: none;
+				color: white;
+				padding: 10px 32px;
+				text-align: center;
+				font-size: 16px;
+				display: inline-block;
+				text-decoration: none;
+				cursor: pointer;
+				border-radius: 10px;
+				font-family: 'Bad Script', cursive;
+			}
+
+			.button:hover {
+				background-color: #d6666a;
+			}
+		</style>
+	</head>
+
+	<body>
+		<h1 class="title styled">Koko's Quest 🐈</h1>
+		<div id="play" onClick="play()">
+			<button class="button">Jugar</button>
+		</div>
+		<div id="nuuro-wrapper-div" style="display: none">
+			<h1 class="title" id="loading-notice" style="display:none">Loading…</h1>
+			<h1 class="title" id="load-percent" style="display:none">0%</h1>
+			<h1 class="title" id="error-notice" style="display:none">Error</h1>
+			<p class="title" id="error-text" style="display:none"></p>
+			<canvas id="nuuro-canvas" style="display:none"></canvas>
+		</div>
+
+		<div class="wrapper">
+			<h2 class="styled">Historia</h2>
+			<p>Me salió del culo, fin.</p>
+		</div>
+	</body>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.1.3/howler.min.js"></script>
+	<script src="nuuro.js"></script>
+	<script>
+		const TILE_SIZE = 16;
+		const SCALING_FACTOR = 2;
+		const SCREEN_WIDTH = TILE_SIZE * 20;
+		const SCREEN_HEIGHT = TILE_SIZE * 20;
+
+		var playButton = document.getElementById('play');
+		var nuuroDiv = document.getElementById('nuuro-wrapper-div');
+		var nuuroCanvas = document.getElementById('nuuro-canvas');
+		var loadingNotice = document.getElementById('loading-notice');
+		var loadPercent = document.getElementById('load-percent');
+		var errorNotice = document.getElementById('error-notice');
+		var errorText = document.getElementById('error-text');
+
+		loadingNotice.style.display = 'block';
+		loadPercent.style.display = 'block';
+
+		function onloadprogress(coreRatio, extraResourcesRatio) {
+			loadPercent.innerHTML = Math.round(50 * coreRatio + 50 * extraResourcesRatio) + '%';
+		}
+
+		function onload() {
+			loadingNotice.style.display = 'none';
+			loadPercent.style.display = 'none';
+			nuuroCanvas.style.display = 'block';
+			nuuroCanvas.width = SCREEN_WIDTH * SCALING_FACTOR;
+			nuuroCanvas.height = SCREEN_HEIGHT * SCALING_FACTOR;
+			nuuroCanvas.style.maxWidth = `${SCREEN_WIDTH * SCALING_FACTOR}px !important`;
+			nuuroCanvas.style.maxHeight = `${SCREEN_HEIGHT * SCALING_FACTOR}px !important`;
+		}
+
+		function onerror(err) {
+			nuuroCanvas.style.display = 'none';
+			loadingNotice.style.display = 'none';
+			loadPercent.style.display = 'none';
+			errorNotice.style.display = 'block';
+			errorText.style.display = 'block';
+			errorText.appendChild(document.createTextNode('An exception was thrown: ' + err));
+		}
+
+		function writeCookie (value) {
+			const days = 31;
+			const date = new Date();
+			date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+			const expires = '; expires=' + date.toUTCString();
+			document.cookie = 'nuuro=' + (value || '')  + expires + '; path=/';
+		}
+
+		function readCookie () {
+			const nameEQ = 'nuuro=';
+			const ca = document.cookie.split(';');
+			for (var i=0; i < ca.length; i++) {
+				var c = ca[i];
+				while (c.charAt(0) == ' ') c = c.substring(1,c.length);
+				if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+			}
+			return null;
+		}
+
+		function play() {
+			playButton.style.display = 'none';
+			nuuroDiv.style.display = 'block';
+			nuuro({
+				wrapperDiv: nuuroDiv,
+				canvas: nuuroCanvas,
+				wasmFilePath: 'nuuro_app.wasm',
+				onloadprogress: onloadprogress,
+				onload: onload,
+				onerror: onerror,
+				writeCookie,
+				readCookie,
+				useMouseOnTouch: false,
+			});
+		}
+	</script>
+</html>
